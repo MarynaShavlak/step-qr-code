@@ -10,25 +10,57 @@ const makeVerification = () => {
   const password = varificateInputsList.map(input => input.value).join('');
   console.log(password);
   if (password === correctPassword) {
-    console.log('Все вірно!');
+    return 'Код верифікації вірний!';
   } else {
-    console.log('Error!');
+    return 'Некоректний код верифікації!';
   }
 };
 
-const onVerifInputKeyUp = (input, index) => {
+const focusNextInput = (index, key) => {
+  if (!varificateInputsList[index + 1].value && key !== 'Backspace') {
+    varificateInputsList[index + 1].focus();
+  }
+};
+const focusPreviousInput = index => {
+  if (index > 0) {
+    varificateInputsList[index].value = '';
+    varificateInputsList[index - 1].focus();
+  } else {
+    varificateInputsList[index].value = '';
+  }
+};
+const resetInputs = () => {
+  varificateInputsList.forEach(input => {
+    input.value = '';
+  });
+  varificateInputsList[0].focus();
+};
+
+const handleKeyUp = (input, index) => {
   input.addEventListener('keyup', e => {
+    const key = e.key;
     if (!e.target.value) return;
     if (index == totalInput - 1) {
-      makeVerification();
+      const verificationResult = makeVerification();
+      document.querySelector('.modal__text').textContent = verificationResult;
       return;
     }
-    varificateInputsList[index + 1].focus();
+    focusNextInput(index, key);
+  });
+};
+
+const handleKeyDown = (input, index) => {
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Backspace') {
+      e.preventDefault();
+      focusPreviousInput(index);
+    }
   });
 };
 
 varificateInputsList.forEach((input, index) => {
-  onVerifInputKeyUp(input, index);
+  handleKeyUp(input, index);
+  handleKeyDown(input, index);
 });
 
 verifInput1.addEventListener('paste', async e => {
@@ -42,8 +74,39 @@ verifInput1.addEventListener('paste', async e => {
       input.value = text[i];
     });
     varificateInputsList[totalInput - 1].focus();
-    makeVerification();
+    const verificationResult = makeVerification();
+    document.querySelector('.modal__text').textContent = verificationResult;
   } catch (error) {
     console.error('Error reading clipboard:', error);
   }
 });
+
+setupModal();
+function setupModal() {
+  const refs = {
+    openModalBtn: document.querySelector('[data-modal-open]'),
+    closeModalBtn: document.querySelector('[data-modal-close]'),
+    backdrop: document.querySelector('[data-modal]'),
+    modal: document.querySelector('.modal'),
+  };
+
+  refs.openModalBtn.addEventListener('click', () => {
+    resetInputs();
+    toggleModal();
+  });
+  refs.closeModalBtn.addEventListener('click', handleModalClose);
+  refs.backdrop.addEventListener('click', toggleModal);
+  refs.modal.addEventListener('click', stopPropagation);
+
+  function toggleModal() {
+    document.body.classList.toggle('modal-open');
+    refs.backdrop.classList.toggle('backdrop--hidden');
+  }
+  function handleModalClose(e) {
+    e.stopPropagation();
+    toggleModal();
+  }
+  function stopPropagation(e) {
+    e.stopPropagation();
+  }
+}
